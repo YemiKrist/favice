@@ -5,8 +5,8 @@ export async function TopBar() {
 
   return (
     <header className="h-14 border-b border-slate-200 bg-white px-4 md:px-6 flex items-center justify-between">
-      {/* Mobile: spacer for hamburger button; Desktop: empty */}
-      <span className="md:hidden font-bold text-[#0a1628] pl-10">Favice</span>
+      {/* Mobile: empty spacer (hamburger+brand rendered by Sidebar); Desktop: empty */}
+      <div className="md:hidden w-28" />
       <div className="hidden md:block" />
 
       <div className="flex items-center gap-3 md:gap-4">
