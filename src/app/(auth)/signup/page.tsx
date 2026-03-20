@@ -104,7 +104,7 @@ export default function SignupPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#0f2240] text-white rounded-lg py-2.5 text-sm font-medium
+              className="w-full bg-[#0f2240] text-white rounded-lg py-3 text-sm font-medium min-h-[44px]
                 hover:bg-[#163258] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Creating account…" : "Create account"}
@@ -122,7 +122,7 @@ export default function SignupPage() {
 
           <button
             onClick={() => signIn("google", { callbackUrl: "/profile" })}
-            className="w-full flex items-center justify-center gap-2 border border-slate-300 rounded-lg py-2.5 text-sm font-medium text-slate-700
+            className="w-full flex items-center justify-center gap-2 border border-slate-300 rounded-lg py-3 text-sm font-medium text-slate-700 min-h-[44px]
               hover:bg-slate-50 transition-colors"
           >
             <svg className="w-4 h-4" viewBox="0 0 24 24">

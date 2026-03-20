@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
@@ -56,9 +57,10 @@ export function Sidebar() {
   const searchParams = useSearchParams();
   const currentPath = pathname ?? "";
   const currentStatus = searchParams.get("status");
+  const [open, setOpen] = useState(false);
 
-  return (
-    <aside className="hidden md:flex flex-col w-56 min-h-screen bg-[#0a1628] text-white">
+  const navContent = (
+    <>
       {/* Logo */}
       <div className="px-6 py-5 border-b border-white/10">
         <span className="text-lg font-bold tracking-tight">Favice</span>
@@ -77,7 +79,8 @@ export function Sidebar() {
             <Link
               key={href}
               href={href}
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors
+              onClick={() => setOpen(false)}
+              className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-colors min-h-[44px]
                 ${active
                   ? "bg-white/15 text-white font-medium"
                   : "text-white/60 hover:bg-white/10 hover:text-white"}`}
@@ -94,7 +97,8 @@ export function Sidebar() {
         <div className="h-px bg-white/10 mb-4" />
         <Link
           href="/profile"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg text-xs text-white/40 hover:text-white/70 transition-colors"
+          onClick={() => setOpen(false)}
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-xs text-white/40 hover:text-white/70 transition-colors min-h-[44px]"
         >
           <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
@@ -103,6 +107,50 @@ export function Sidebar() {
           Settings
         </Link>
       </div>
-    </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* Desktop sidebar */}
+      <aside className="hidden md:flex flex-col w-56 min-h-screen bg-[#0a1628] text-white">
+        {navContent}
+      </aside>
+
+      {/* Mobile hamburger button (rendered in TopBar area via portal-like positioning) */}
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="md:hidden fixed top-3 left-4 z-50 p-2 rounded-lg bg-[#0a1628] text-white min-h-[44px] min-w-[44px] flex items-center justify-center"
+        aria-label="Open menu"
+      >
+        <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+        </svg>
+      </button>
+
+      {/* Mobile drawer overlay */}
+      {open && (
+        <div className="md:hidden fixed inset-0 z-50 flex">
+          {/* Backdrop */}
+          <div className="fixed inset-0 bg-black/50" onClick={() => setOpen(false)} />
+          {/* Drawer */}
+          <aside className="relative flex flex-col w-64 max-w-[80vw] min-h-screen bg-[#0a1628] text-white z-10">
+            {/* Close button */}
+            <button
+              type="button"
+              onClick={() => setOpen(false)}
+              className="absolute top-4 right-4 p-2 rounded-lg text-white/60 hover:text-white hover:bg-white/10 min-h-[44px] min-w-[44px] flex items-center justify-center"
+              aria-label="Close menu"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            {navContent}
+          </aside>
+        </div>
+      )}
+    </>
   );
 }
