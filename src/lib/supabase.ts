@@ -7,7 +7,10 @@ const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
  * Browser-side Supabase client (uses anon key, respects RLS).
  * Use in Client Components.
  */
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(
+  supabaseUrl || 'https://placeholder.supabase.co',
+  supabaseAnonKey || 'placeholder'
+);
 
 /**
  * Server-side Supabase client (uses service role key, bypasses RLS).

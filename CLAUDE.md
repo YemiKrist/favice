@@ -50,7 +50,7 @@ src/app/
   (dashboard)/
     layout.tsx               Sidebar + TopBar shell
     dashboard/page.tsx       Summary cards + invoice list
-    profile/page.tsx         Company details, logo, signature, bank info
+    profile/page.tsx         Company details, logo, signature, signatory, bank info
     invoices/
       page.tsx               Invoice list (filterable by status)
       new/page.tsx           Create invoice with live preview
@@ -85,18 +85,24 @@ All data mutations go through Server Actions (not API routes):
 |---|---|
 | `InvoiceCreator` | Main client component with all invoice form state |
 | `InvoicePreview` | Read-only preview rendering (used for display + PDF capture) |
+| `TrimmedLogo` | Client component that auto-crops whitespace from PNG images (logo + signature) |
 | `LineItemsTable` | Dynamic line items with qty × rate calculation |
 | `TaxSection` | VAT / WHT toggle + percentage inputs |
 | `InvoiceTable` | Filterable invoice list with status actions |
 | `SummaryCards` | Dashboard metric cards |
+| `ProfileForm` | Company details, logo/signature upload, signatory name/designation, bank info |
 | `Sidebar` | Navigation sidebar (uses `usePathname` for active state) |
 
 ### Database schema
 
 Three tables — see `supabase/schema.sql` for full definitions:
-- `profiles` — one row per user (company info, logo/signature URLs, bank details)
+- `profiles` — one row per user (company info, logo/signature URLs, signatory name/designation, bank details)
 - `invoices` — one row per invoice (header, tax config, totals, status)
 - `invoice_line_items` — child rows of invoices (cascades on delete)
+
+### Profile & signatory
+
+Signatory name and designation are stored on the **profile** (not per invoice) since the same person typically signs all invoices. These fields appear in the Profile Settings page under the Logo & Signature section and render below the signature image on the invoice preview/PDF.
 
 ### PDF export
 
@@ -104,11 +110,29 @@ PDF export uses **`html-to-image`** + `jspdf` (both dynamically imported). The `
 
 - Do **not** use `html2canvas` for this — its CSS parser cannot handle `oklch()`/`lab()` color functions that Tailwind v4 emits, and `foreignObjectRendering: true` produces a blank image.
 - `html-to-image` uses the browser's native serializer so modern CSS colors work without any workarounds.
-- The PDF captures the **unscaled** 720px `#invoice-preview` element directly (not the scaled display wrapper).
+- The capture uses CSS `transform: scale(3)` for sharp text (renders at 3× CSS size, not pixel upscaling).
+- A two-pass capture is used: first pass warms up html-to-image's internal caches (fonts, images), second pass produces the final image.
+- All images (logo, signature) are pre-fetched as base64 data URLs before capture to avoid CORS issues.
+- Images already in data URL format (from `TrimmedLogo`) are skipped during pre-fetch.
+- After pre-fetch, the code waits for all images to load and an extra paint frame before capturing.
+
+### TrimmedLogo component
+
+`src/components/ui/TrimmedLogo.tsx` — Client component that auto-crops transparent and near-white padding from PNG images. Used for both the company logo and signature in `InvoicePreview`.
+
+- Pre-fetches image via `fetch()` → converts to data URL (avoids canvas CORS tainting)
+- Scans pixels on a canvas to find bounding box of visible content (alpha > 10, not near-white r/g/b > 248)
+- Crops to bounding box with 1px anti-aliasing padding
+- Always outputs a data URL — ensures PDF capture works without CORS issues
+- Falls back gracefully: fetch failure → original URL, canvas failure → data URL of original
 
 ### Invoice preview layout
 
-`InvoicePreview` renders at a **fixed 720px width** matching the Figma design (Favsys Invoice Design — Monochrome, node 7:2). In `InvoiceCreator`, a `ResizeObserver`-based scale wrapper shrinks it proportionally to fit the `560px` preview panel using `transform: scale()`. The PDF always captures at full 720px resolution.
+`InvoicePreview` uses **all inline styles** (no Tailwind classes) for reliable PDF rendering. No `overflow: hidden` on root, no flex `gap`, all margins explicit. The monochrome palette matches the Figma design (Favsys Invoice Design — Monochrome, node 7:2).
+
+- Logo: rendered via `TrimmedLogo` at 128×64px max
+- Signature: rendered via `TrimmedLogo` at 158×62px max, with signatory name/designation below (from profile)
+- Header has 60px top padding
 
 ### Styling
 
