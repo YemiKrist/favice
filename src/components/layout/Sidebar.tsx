@@ -118,7 +118,7 @@ export function Sidebar() {
       </aside>
 
       {/* Mobile: hamburger + brand sitting inside the TopBar area */}
-      <div className="md:hidden fixed top-0 left-0 h-14 z-40 flex items-center gap-2 px-4">
+      <div className="md:hidden fixed top-0 left-0 h-14 z-[51] flex items-center gap-2 px-4">
         <button
           type="button"
           onClick={() => setOpen(true)}
