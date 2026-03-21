@@ -4,7 +4,7 @@ export async function TopBar() {
   const session = await auth();
 
   return (
-    <header className="h-14 border-b border-slate-200 bg-white px-4 md:px-6 flex items-center justify-between">
+    <header className="h-14 border-b border-slate-200 bg-white px-4 md:px-6 flex items-center justify-between sticky top-0 z-50 shadow-[0_1px_4px_rgba(0,0,0,0.08)]">
       {/* Mobile: empty spacer (hamburger+brand rendered by Sidebar); Desktop: empty */}
       <div className="md:hidden w-28" />
       <div className="hidden md:block" />
