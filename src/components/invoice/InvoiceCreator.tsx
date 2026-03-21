@@ -88,8 +88,10 @@ export function InvoiceCreator({ profile, initialInvoiceNumber, existingInvoice 
   const recalcScale = useCallback(() => {
     const container = previewContainerRef.current;
     if (!container) return;
-    // Subtract padding (24px * 2) from available width
-    const available = container.clientWidth - 48;
+    // clientWidth includes padding, so subtract it (24px * 2)
+    const cs = getComputedStyle(container);
+    const paddingX = parseFloat(cs.paddingLeft) + parseFloat(cs.paddingRight);
+    const available = container.clientWidth - paddingX;
     setPreviewScale(available < INVOICE_WIDTH ? available / INVOICE_WIDTH : 1);
   }, []);
 
@@ -285,7 +287,7 @@ export function InvoiceCreator({ profile, initialInvoiceNumber, existingInvoice 
       {/* Document-on-desk wrapper — grey background matches Figma context */}
       <div
         ref={previewContainerRef}
-        className="rounded-xl overflow-hidden"
+        className="rounded-xl"
         style={{
           backgroundColor: "#e5e5e5",
           padding: "24px",
@@ -293,22 +295,20 @@ export function InvoiceCreator({ profile, initialInvoiceNumber, existingInvoice 
           overflowY: "auto",
         }}
       >
-        {/* Height wrapper — collapses to the scaled height so no dead space */}
-        <div style={{
-          height: previewScale < 1 && invoiceHeight ? invoiceHeight * previewScale : undefined,
-          overflow: "hidden",
-        }}>
-          {/* Fixed-width shell — scaled down on small screens via CSS transform */}
-          <div
-            ref={invoiceShellRef}
-            style={{
-              width: INVOICE_WIDTH,
-              transform: previewScale < 1 ? `scale(${previewScale})` : undefined,
-              transformOrigin: "top left",
-            }}
-          >
-            <InvoicePreview data={form} totals={totals} profile={profile} />
-          </div>
+        {/* Fixed-width shell — scaled down on small screens via CSS transform */}
+        <div
+          ref={invoiceShellRef}
+          style={{
+            width: INVOICE_WIDTH,
+            transform: previewScale < 1 ? `scale(${previewScale})` : undefined,
+            transformOrigin: "top left",
+            // Collapse the layout height to match the visually scaled height
+            marginBottom: previewScale < 1 && invoiceHeight
+              ? -(invoiceHeight * (1 - previewScale))
+              : undefined,
+          }}
+        >
+          <InvoicePreview data={form} totals={totals} profile={profile} />
         </div>
       </div>
     </div>
