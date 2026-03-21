@@ -269,46 +269,33 @@ export function InvoiceCreator({ profile, initialInvoiceNumber, existingInvoice 
 
   const previewPanel = (
     <div>
-      {/* Panel header */}
-      <div className="flex items-center justify-between mb-3">
+      {/* Panel header — desktop only (mobile has its own in the overlay) */}
+      <div className="hidden md:flex items-center justify-between mb-3">
         <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Live Preview</p>
-        {/* Close button — mobile only */}
-        <button
-          type="button"
-          onClick={() => setShowPreview(false)}
-          className="md:hidden p-2 rounded-lg text-slate-400 hover:text-slate-700 hover:bg-slate-100 min-h-[44px] min-w-[44px] flex items-center justify-center"
-          aria-label="Close preview"
-        >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth={2} viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        </button>
       </div>
       {/* Document-on-desk wrapper — grey background matches Figma context */}
       <div
         ref={previewContainerRef}
-        className="rounded-xl"
+        className="rounded-xl overflow-hidden"
         style={{
           backgroundColor: "#e5e5e5",
           padding: "24px",
-          maxHeight: "calc(100vh - 7rem)",
-          overflowY: "auto",
         }}
       >
         {/* Fixed-width shell — scaled down on small screens via CSS transform */}
         <div
-          ref={invoiceShellRef}
           style={{
             width: INVOICE_WIDTH,
             transform: previewScale < 1 ? `scale(${previewScale})` : undefined,
             transformOrigin: "top left",
-            // Collapse the layout height to match the visually scaled height
-            marginBottom: previewScale < 1 && invoiceHeight
-              ? -(invoiceHeight * (1 - previewScale))
+            height: invoiceHeight
+              ? invoiceHeight * previewScale
               : undefined,
           }}
         >
-          <InvoicePreview data={form} totals={totals} profile={profile} />
+          <div ref={invoiceShellRef} style={{ width: INVOICE_WIDTH }}>
+            <InvoicePreview data={form} totals={totals} profile={profile} />
+          </div>
         </div>
       </div>
     </div>
@@ -334,9 +321,10 @@ export function InvoiceCreator({ profile, initialInvoiceNumber, existingInvoice 
 
       {/* Mobile preview overlay */}
       {showPreview && (
-        <div className="md:hidden fixed inset-0 z-40 bg-slate-50 overflow-y-auto p-4 pt-2">
+        <div className="md:hidden fixed inset-0 z-50 bg-slate-50 overflow-y-auto" style={{ paddingTop: 56 }}>
           {/* Close bar */}
-          <div className="flex justify-end mb-2">
+          <div className="flex items-center justify-between px-4 py-2">
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Live Preview</p>
             <button
               type="button"
               onClick={() => setShowPreview(false)}
@@ -348,7 +336,9 @@ export function InvoiceCreator({ profile, initialInvoiceNumber, existingInvoice 
               </svg>
             </button>
           </div>
-          {previewPanel}
+          <div className="px-4 pb-4">
+            {previewPanel}
+          </div>
         </div>
       )}
 
@@ -502,7 +492,7 @@ export function InvoiceCreator({ profile, initialInvoiceNumber, existingInvoice 
         </div>
 
         {/* ── RIGHT: Preview (desktop only) ───────────────────────────────────── */}
-        <div className="hidden md:block sticky top-6">
+        <div className="hidden md:block sticky top-6" style={{ maxHeight: "calc(100vh - 3rem)", overflowY: "auto" }}>
           {previewPanel}
         </div>
 
