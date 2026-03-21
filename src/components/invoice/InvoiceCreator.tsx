@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -12,6 +12,9 @@ import { InvoicePreview } from "@/components/invoice/InvoicePreview";
 import { saveInvoice } from "@/actions/invoices";
 import { calcTotals, blankLineItem, todayISO, addDays } from "@/lib/utils";
 import type { InvoiceFormData, Profile, InvoiceStatus, Invoice } from "@/types";
+
+/** Fixed width for the invoice preview (A4 at 96dpi) */
+const INVOICE_WIDTH = 794;
 
 interface Props {
   profile: Profile | null;
@@ -76,6 +79,34 @@ export function InvoiceCreator({ profile, initialInvoiceNumber, existingInvoice 
   const [saveMsg, setSaveMsg] = useState("");
   const [showPreview, setShowPreview] = useState(false);
 
+  // Scale the fixed-width invoice preview to fit its container
+  const previewContainerRef = useRef<HTMLDivElement>(null);
+  const invoiceShellRef = useRef<HTMLDivElement>(null);
+  const [previewScale, setPreviewScale] = useState(1);
+  const [invoiceHeight, setInvoiceHeight] = useState<number | undefined>(undefined);
+
+  const recalcScale = useCallback(() => {
+    const container = previewContainerRef.current;
+    if (!container) return;
+    // Subtract padding (24px * 2) from available width
+    const available = container.clientWidth - 48;
+    setPreviewScale(available < INVOICE_WIDTH ? available / INVOICE_WIDTH : 1);
+  }, []);
+
+  // Observe both container width and invoice height changes
+  useEffect(() => {
+    recalcScale();
+    const ro = new ResizeObserver(() => {
+      recalcScale();
+      if (invoiceShellRef.current) {
+        setInvoiceHeight(invoiceShellRef.current.offsetHeight);
+      }
+    });
+    if (previewContainerRef.current) ro.observe(previewContainerRef.current);
+    if (invoiceShellRef.current) ro.observe(invoiceShellRef.current);
+    return () => ro.disconnect();
+  }, [recalcScale]);
+
   const totals = calcTotals(form);
 
   function set<K extends keyof InvoiceFormData>(key: K, value: InvoiceFormData[K]) {
@@ -122,10 +153,22 @@ export function InvoiceCreator({ profile, initialInvoiceNumber, existingInvoice 
 
       // Strip decorative styles so the PDF has no border/shadow
       const el = previewEl as HTMLElement;
-      const prev = { border: el.style.border, boxShadow: el.style.boxShadow, borderRadius: el.style.borderRadius };
+      const scaleShell = el.parentElement as HTMLElement;
+      const prev = {
+        border: el.style.border,
+        boxShadow: el.style.boxShadow,
+        borderRadius: el.style.borderRadius,
+        shellTransform: scaleShell?.style.transform ?? "",
+        shellWidth: scaleShell?.style.width ?? "",
+      };
       el.style.border = "none";
       el.style.boxShadow = "none";
       el.style.borderRadius = "0";
+      // Remove mobile scaling so we capture at full 794px width
+      if (scaleShell) {
+        scaleShell.style.transform = "none";
+        scaleShell.style.width = `${INVOICE_WIDTH}px`;
+      }
 
       // Pre-fetch all images as base64 data URLs so CORS doesn't block them in the canvas
       const imgEls = Array.from(el.querySelectorAll<HTMLImageElement>("img"));
@@ -180,6 +223,10 @@ export function InvoiceCreator({ profile, initialInvoiceNumber, existingInvoice 
       el.style.border = prev.border;
       el.style.boxShadow = prev.boxShadow;
       el.style.borderRadius = prev.borderRadius;
+      if (scaleShell) {
+        scaleShell.style.transform = prev.shellTransform;
+        scaleShell.style.width = prev.shellWidth;
+      }
       imgEls.forEach((img, i) => { img.src = origSrcs[i]; });
 
       const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
@@ -237,14 +284,32 @@ export function InvoiceCreator({ profile, initialInvoiceNumber, existingInvoice 
       </div>
       {/* Document-on-desk wrapper — grey background matches Figma context */}
       <div
-        className="rounded-xl overflow-y-auto"
+        ref={previewContainerRef}
+        className="rounded-xl overflow-hidden"
         style={{
           backgroundColor: "#e5e5e5",
           padding: "24px",
           maxHeight: "calc(100vh - 7rem)",
+          overflowY: "auto",
         }}
       >
-        <InvoicePreview data={form} totals={totals} profile={profile} />
+        {/* Height wrapper — collapses to the scaled height so no dead space */}
+        <div style={{
+          height: previewScale < 1 && invoiceHeight ? invoiceHeight * previewScale : undefined,
+          overflow: "hidden",
+        }}>
+          {/* Fixed-width shell — scaled down on small screens via CSS transform */}
+          <div
+            ref={invoiceShellRef}
+            style={{
+              width: INVOICE_WIDTH,
+              transform: previewScale < 1 ? `scale(${previewScale})` : undefined,
+              transformOrigin: "top left",
+            }}
+          >
+            <InvoicePreview data={form} totals={totals} profile={profile} />
+          </div>
+        </div>
       </div>
     </div>
   );
